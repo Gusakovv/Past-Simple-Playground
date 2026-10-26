@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Yesterday I… My Adventure</title>
+<style>
+:root{--bg:#fff7e6;--tx:#2b2540;--p:#7c4dff;--g:#2fb86b;--r:#ff6b6b;--y:#ffc83d}
+*{box-sizing:border-box}body{margin:0;font:20px/1.45 ui-rounded,"Arial Rounded MT Bold","Trebuchet MS",system-ui,sans-serif;color:var(--tx);background:linear-gradient(#cfeaff,var(--bg) 40%);min-height:100vh}
+button{font:inherit;cursor:pointer;border:0;border-radius:18px;padding:12px 22px;background:var(--p);color:#fff;box-shadow:0 4px 0 rgba(0,0,0,.2)}
+button:active{transform:translateY(2px)}button.s{background:#fff;color:var(--p)}button.g{background:var(--g)}
+:focus-visible{outline:4px solid var(--y);outline-offset:2px}
+header{display:flex;gap:10px;align-items:center;justify-content:space-between;padding:10px 14px;flex-wrap:wrap}
+#app{max-width:880px;margin:0 auto;padding:8px 14px 60px;text-align:center}
+h1{font-size:2.6rem;margin:.2em 0;color:var(--p)}.big{font-size:5rem;line-height:1.1}
+.fox{display:flex;align-items:center;gap:10px;justify-content:center;margin:8px 0}.fox b{font-size:3.2rem}
+.say{background:#fff;border-radius:20px;padding:10px 16px;box-shadow:0 3px 8px rgba(0,0,0,.12);max-width:520px;text-align:left}.say small{display:block;color:#6a6585;font-size:.75em}
+.map{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:14px;margin:18px 0}
+.node{border-radius:26px;padding:14px 8px;color:#fff;font-weight:700;display:block;width:100%;position:relative}
+.node .e{font-size:3rem;display:block}.node.lock{filter:grayscale(1);opacity:.55}.node.done::after{content:"⭐";position:absolute;top:-8px;right:-4px;font-size:1.6rem;animation:b 1.6s infinite}
+@keyframes b{50%{transform:translateY(-4px)}}
+.card{background:#fff;border-radius:26px;padding:18px;margin:12px auto;box-shadow:0 4px 14px rgba(0,0,0,.12);max-width:640px}
+.opts{display:flex;flex-wrap:wrap;gap:12px;justify-content:center;margin:14px 0}
+.o{background:#fff;color:var(--tx);border:3px solid #e5defa;min-width:110px}.o.em{font-size:3.4rem;padding:8px 16px}
+.o.ok{background:#d6f7e4;border-color:var(--g)}.o.no{background:#ffe0e0;border-color:var(--r)}
+.dots{display:flex;gap:6px;justify-content:center;margin:6px}.dots i{width:12px;height:12px;border-radius:50%;background:#d8d0f3}.dots i.on{background:var(--p)}.dots i.dn{background:var(--g)}
+.spk{background:var(--y);color:var(--tx);border-radius:50%;width:48px;height:48px;padding:0}.spk.pl{animation:b .5s infinite}
+.w{background:#e8e0ff;color:var(--tx);margin:4px;padding:8px 14px}.slot{min-height:64px;border:3px dashed #c9bdf5;border-radius:18px;padding:6px;margin:10px 0}
+.mem{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}.mem button{font-size:1.1rem;padding:14px 4px;min-height:74px}.mem .up{background:#fff;color:var(--tx)}.mem .mt{background:#d6f7e4;color:var(--tx)}
+.conf{position:fixed;inset:0;pointer-events:none;overflow:hidden}.conf span{position:absolute;top:-40px;font-size:2rem;animation:f 2.4s linear forwards}
+@keyframes f{to{transform:translateY(110vh) rotate(360deg)}}
+@media(prefers-reduced-motion:reduce){*{animation:none!important}}
+@media(max-width:520px){h1{font-size:2rem}.big{font-size:4rem}}
+</style></head><body>
+<header><div id="hud"></div><div><button class="s" id="ac" aria-label="Акцент">🇬🇧</button> <button class="s" id="sl" aria-label="Скорость">🐢</button></div></header>
+<main id="app"></main>
+<script>
+"use strict";
+const KEY="m2kids_v1";let S={name:"Fox",av:"🦊",stars:0,done:{},words:{},teacher:false,hard:{}};
+try{Object.assign(S,JSON.parse(localStorage.getItem(KEY)||"{}"))}catch(e){}
+const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}};
+const $=s=>document.querySelector(s),esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const shuf=a=>{a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.random()*(i+1)|0;[a[i],a[j]]=[a[j],a[i]]}return a};
+/* audio (speech synthesis, not native-speaker recordings) */
+const A={lang:"en-GB",rate:.75,ok:"speechSynthesis"in window};
+function say(t,b){if(!A.ok){alert("В этом браузере нет озвучки. Попроси взрослого прочитать слово вслух.");return}
+ speechSynthesis.cancel();document.querySelectorAll(".pl").forEach(x=>x.classList.remove("pl"));
+ const u=new SpeechSynthesisUtterance(t);u.lang=A.lang;u.rate=A.rate;const v=speechSynthesis.getVoices().find(v=>v.lang.replace("_","-")==A.lang);if(v)u.voice=v;
+ if(b){b.classList.add("pl");u.onend=u.onerror=()=>b.classList.remove("pl")}speechSynthesis.speak(u)}
+document.addEventListener("click",e=>{const b=e.target.closest("[data-say]");if(b)say(b.dataset.say,b)});
+const sp=t=>`<button class="spk" data-say="${esc(t)}" aria-label="Слушать: ${esc(t)}">🔊</button>`;
+$("#ac").onclick=e=>{A.lang=A.lang=="en-GB"?"en-US":"en-GB";e.target.textContent=A.lang=="en-GB"?"🇬🇧":"🇺🇸"};
+$("#sl").onclick=e=>{A.rate=A.rate<.8?.95:.75;e.target.textContent=A.rate<.8?"🐢":"🐇"};
+/* data: en|past|ru|emoji|wrong */
+const P=s=>s.split(";").map(x=>{const a=x.split("|");return{en:a[0],pa:a[1],ru:a[2],e:a[3],w:a[4]}});
+const LV=[
+{id:"bed",t:"My Bedroom",e:"🛏️",c:"#6c8cff",k:"loc",it:P("wake up|woke up|просыпаться|⏰|waked up;get up|got up|вставать|🧍|getted up;brush my teeth|brushed my teeth|чистить зубы|🪥|brushes my teeth;wash my face|washed my face|умываться|🧼|washes my face;get dressed|got dressed|одеваться|👕|getted dressed;make my bed|made my bed|заправлять кровать|🛌|maked my bed")},
+{id:"brk",t:"Breakfast",e:"🍳",c:"#ff9f43",k:"loc",it:P("have breakfast|had breakfast|завтракать|🍳|haved breakfast;eat cereal|ate cereal|есть хлопья|🥣|eated cereal;drink milk|drank milk|пить молоко|🥛|drinked milk;drink juice|drank juice|пить сок|🧃|drinked juice;make a sandwich|made a sandwich|делать бутерброд|🥪|maked a sandwich;wash the dishes|washed the dishes|мыть посуду|🍽️|washes the dishes")},
+{id:"sch",t:"School",e:"🏫",c:"#2fb86b",k:"loc",it:P("go to school|went to school|идти в школу|🏫|goed to school;read a book|read a book|читать книгу|📖|readed a book;write a sentence|wrote a sentence|писать предложение|✏️|writed a sentence;draw a picture|drew a picture|рисовать картинку|🎨|drawed a picture;ask a question|asked a question|задавать вопрос|🙋|asks a question;listen to the teacher|listened to the teacher|слушать учителя|👩‍🏫|listens to the teacher")},
+{id:"pg",t:"Playground",e:"⚽",c:"#ff6b6b",k:"loc",it:P("play football|played football|играть в футбол|⚽|plays football;ride a bike|rode a bike|кататься на велосипеде|🚲|rided a bike;run|ran|бегать|🏃|runned;swim|swam|плавать|🏊|swimmed;jump|jumped|прыгать|🤸|jumps;dance|danced|танцевать|💃|danceed")},
+{id:"fun",t:"Fun Time",e:"🎉",c:"#c15bff",k:"loc",it:P("watch cartoons|watched cartoons|смотреть мультики|📺|watchs cartoons;listen to music|listened to music|слушать музыку|🎧|listens to music;sing a song|sang a song|петь песню|🎤|singed a song;play the piano|played the piano|играть на пианино|🎹|plays the piano;paint a picture|painted a picture|рисовать красками|🖌️|paints a picture;have fun|had fun|веселиться|🥳|haved fun")},
+{id:"fam",t:"Family Evening",e:"🏠",c:"#14b8c4",k:"loc",it:P("come home|came home|приходить домой|🏠|comed home;cook dinner|cooked dinner|готовить ужин|🍲|cooks dinner;have dinner|had dinner|ужинать|🍝|haved dinner;play a board game|played a board game|играть в настолку|🎲|plays a board game;go to bed|went to bed|ложиться спать|🌙|goed to bed;fall asleep|fell asleep|засыпать|😴|falled asleep")},
+{id:"tm",t:"Time Machine",e:"⏳",c:"#5b6ee1",k:"time"},
+{id:"snd",t:"Sound Studio",e:"🎧",c:"#e0508a",k:"sound"},
+{id:"for",t:"Verb Forest",e:"🌳",c:"#3a9d5d",k:"forest"},
+{id:"fin",t:"Final Adventure",e:"🏆",c:"#e6a100",k:"final"}];
+const IRR=`go|went|gone|идти;eat|ate|eaten|есть;see|saw|seen|видеть;take|took|taken|брать;run|ran|run|бегать;swim|swam|swum|плавать;drink|drank|drunk|пить;make|made|made|делать;buy|bought|bought|покупать;write|wrote|written|писать;sing|sang|sung|петь;come|came|come|приходить;give|gave|given|давать;have|had|had|иметь;read|read|read|читать;draw|drew|drawn|рисовать;sleep|slept|slept|спать;meet|met|met|встречать;find|found|found|находить;get|got|got|получать;say|said|said|говорить;tell|told|told|рассказывать;think|thought|thought|думать;win|won|won|выигрывать;lose|lost|lost|терять;sit|sat|sat|сидеть;speak|spoke|spoken|говорить;fall|fell|fallen|падать;ride|rode|ridden|ездить;know|knew|known|знать;wear|wore|worn|носить`.split(";").map(x=>x.split("|"));
+const wrongEd=b=>b.endsWith("e")?b+"d":b+"ed";
+const SW={0:["worked","watched","helped","washed","jumped","asked"],1:["played","cleaned","opened","lived","called","enjoyed"],2:["wanted","needed","visited","started","waited","decided"]};
+const ZN=["/t/","/d/","/ɪd/"];
+const QT=[["Yesterday I ___ football.",["played","play","plays"],0],["I didn't ___ TV.",["watch","watched","watches"],0],["___ you eat breakfast?",["Did","Do","Does"],0],["She ___ tired yesterday.",["was","were","is"],0],["They ___ happy yesterday.",["were","was","are"],0],["Did you go? — No, I ___.",["didn't","don't","wasn't"],0],["We didn't ___ to the park.",["go","went","goed"],0],["What ___ you do yesterday?",["did","do","does"],0],["Yesterday I ___ my room. (clean)",["cleaned","cleanned","cleanyed"],0],["He ___ English yesterday. (study)",["studied","studyed","studys"],0],["She ___ the bus. (stop)",["stopped","stoped","stoping"],0]];
+/* step builders: each returns {run(box,done)} ; done(ok) */
+const cheer=["Great job!","Amazing!","You did it!","Fantastic!"],again=["Let's try again!","Almost there!","Try one more time!"];
+const pick=a=>a[Math.random()*a.length|0];
+function foxSay(en,ru){return `<div class="fox"><b>${S.av}</b><div class="say">${en}${ru?`<small>${ru}</small>`:""}</div></div>`}
+function choice(o){return{run(box,done){let first=true;const opts=shuf(o.o.map((x,i)=>({x,i})));
+ box.innerHTML=foxSay(o.say||"Can you find the answer?","Найди ответ!")+`<div class="card">${o.p||""}${o.au?` ${sp(o.au)}`:""}<div class="opts">${opts.map((q,j)=>`<button class="o ${o.em?"em":""}" data-j="${j}">${q.x}</button>`).join("")}</div><div id="fb"></div></div>`;
+ if(o.au&&o.auto)setTimeout(()=>say(o.au),300);
+ box.querySelectorAll(".o").forEach(b=>b.onclick=()=>{const ok=opts[+b.dataset.j].i==o.c;
+  if(ok){b.classList.add("ok");box.querySelectorAll(".o").forEach(x=>x.disabled=true);$("#fb").innerHTML=`<h2>🌟 ${pick(cheer)}</h2>${o.ex||""}<button class="g" id="nx">Дальше ▶</button>`;$("#nx").onclick=()=>done(first)}
+  else{first=false;b.classList.add("no");b.disabled=true;$("#fb").innerHTML=`<p>🦊 ${pick(again)}</p>`;if(o.ex0)S.hard[o.ex0]=1}})}}}
+function learn(items){return{run(box,done){let i=0;const show=()=>{const v=items[i];S.words[v.en]=1;save();
+ box.innerHTML=foxSay("Listen and repeat!","Слушай и повторяй!")+`<div class="card"><div class="big">${v.e}</div><h2>${v.en} ${sp(v.en)}</h2><p>${v.ru}</p><p>Вчера: <b style="color:var(--p)">${v.pa}</b> ${sp("Yesterday I "+v.pa+".")}</p><p><i>Yesterday I ${v.pa}.</i></p><button id="nx">${i<items.length-1?"Дальше ▶":"Готово ✔"}</button></div>`;
+ $("#nx").onclick=()=>{i++;i<items.length?show():done(true)}};show()}}}
+function build(v){const ws=["Yesterday","I",...v.pa.split(" ")];return{run(box,done){let cur=[],first=true;const draw=()=>{const bank=shuf(ws.map((w,i)=>({w,i}))).filter(x=>!cur.includes(x.i));
+ box.innerHTML=foxSay("Build the sentence!","Собери предложение!")+`<div class="card"><div class="big">${v.e}</div><div class="slot">${cur.map(i=>`<button class="w" data-u="${i}">${ws[i]}</button>`).join("")}</div><div>${bank.map(x=>`<button class="w" data-i="${x.i}">${x.w}</button>`).join("")}</div><button id="ck">Проверить</button> <button class="s" id="rs">Заново</button><div id="fb"></div></div>`;
+ box.querySelectorAll("[data-i]").forEach(b=>b.onclick=()=>{cur.push(+b.dataset.i);draw()});box.querySelectorAll("[data-u]").forEach(b=>b.onclick=()=>{cur=cur.filter(i=>i!=+b.dataset.u);draw()});
+ $("#rs").onclick=()=>{cur=[];draw()};
+ $("#ck").onclick=()=>{const t=cur.map(i=>ws[i]).join(" ");if(t==ws.join(" ")){$("#fb").innerHTML=`<h2>🌟 ${pick(cheer)}</h2>${sp(ws.join(" ")+".")}<br><button class="g" id="nx">Дальше ▶</button>`;say(ws.join(" ")+".");$("#nx").onclick=()=>done(first)}else{first=false;$("#fb").innerHTML=`<p>🦊 ${pick(again)} Подсказка: сначала <b>Yesterday</b>.</p>`}}};draw()}}}
+function memory(pairs){return{run(box,done){const cards=shuf(pairs.flatMap((p,i)=>[{t:p[0],i},{t:p[1],i}]));let open=[],m=0;
+ box.innerHTML=foxSay("Find the pairs!","Найди пары: глагол и его прошедшая форма.")+`<div class="card"><div class="mem">${cards.map((c,k)=>`<button data-k="${k}" aria-label="карточка">❓</button>`).join("")}</div></div>`;
+ box.querySelectorAll(".mem button").forEach(b=>b.onclick=()=>{if(open.length>1||b.classList.contains("mt")||open.includes(b))return;const c=cards[+b.dataset.k];b.textContent=c.t;b.className="up";say(c.t);open.push(b);
+  if(open.length==2){const[a,d]=open,ca=cards[+a.dataset.k],cd=cards[+d.dataset.k];if(ca.i==cd.i){a.className=d.className="mt";open=[];if(++m==pairs.length)setTimeout(()=>done(true),700)}else setTimeout(()=>{open.forEach(x=>{x.textContent="❓";x.className=""});open=[]},900)}})}}}
+function trees(){return{run(box,done){box.innerHTML=foxSay("Tap a tree!","Нажми на дерево — увидишь формы.")+`<div class="card"><div class="opts">${IRR.map((v,i)=>`<button class="o" data-i="${i}">🌳 ${v[0]}</button>`).join("")}</div><div id="tr" class="say" style="margin:auto">…</div><br><button id="nx">Дальше ▶</button></div>`;
+ box.querySelectorAll("[data-i]").forEach(b=>b.onclick=()=>{const v=IRR[+b.dataset.i];S.words[v[0]]=1;save();$("#tr").innerHTML=`<b>${v[0]}</b> — <b style="color:var(--p)">${v[1]}</b> — <b style="color:var(--g)">${v[2]}</b> (${v[3]}) ${sp(v[0]+", "+v[1]+", "+v[2])}<small>Для рассказа о вчера нужна вторая форма: Yesterday I ${v[1]}.</small>`;say(v[0]+", "+v[1]+", "+v[2])});$("#nx").onclick=()=>done(true)}}}
+function timeM(){return{run(box,done){const E=[["⚽","I play football.","I played football yesterday."],["📺","I watch TV.","I watched TV yesterday."],["🍽️","I eat lunch.","I ate lunch yesterday."],["🏫","I go to school.","I went to school yesterday."]];let y=0;
+ const d=()=>{box.innerHTML=foxSay("Let's travel to yesterday!","Нажми кнопку времени!")+`<div class="card"><button class="${y?"s":""}" id="n">Now</button> <button class="${y?"":"s"}" id="y">Yesterday ⏪</button>${E.map(e=>`<p><span style="font-size:2.4rem">${e[0]}</span> <b>${e[y?2:1]}</b> ${sp(e[y?2:1])}</p>`).join("")}<p class="say" style="margin:auto">${y?"Вчера: к глаголу добавляем -ed (или меняем: eat → ate).":"Сейчас: обычный глагол."}</p><br><button class="g" id="nx">Дальше ▶</button></div>`;$("#n").onclick=()=>{y=0;d()};$("#y").onclick=()=>{y=1;d()};$("#nx").onclick=()=>done(true)};d()}}}
+function info(h,say_){return{run(box,done){box.innerHTML=foxSay(h)+`<div class="card">${say_}<br><button class="g" id="nx">Дальше ▶</button></div>`;$("#nx").onclick=()=>done(true)}}}
+function story(items){const t="Yesterday I "+items.slice(0,4).map(v=>v.pa).join(". Then I ")+".";return{run(box,done){box.innerHTML=foxSay("My yesterday story","Послушай мой рассказ! Потом расскажи свой вчерашний день.")+`<div class="card"><div class="big">${items.slice(0,4).map(v=>v.e).join(" ")}</div><p>${t} ${sp(t)}</p><p>🗣️ А теперь ты! Расскажи 3 предложения: <i>Yesterday I …</i></p><button class="g" id="nx">Я рассказал(а)! ✔</button></div>`;$("#nx").onclick=()=>done(true)}}}
+const all=LV.filter(l=>l.it).flatMap(l=>l.it);
+const gFind=v=>{const d=shuf(all.filter(x=>x.e!=v.e)).slice(0,2);return choice({say:"Listen and find!",p:"Послушай и найди картинку:",au:v.en,auto:1,o:[v.e,...d.map(x=>x.e)],c:0,em:1,ex:`<p>${v.en} — ${v.ru}</p>`})};
+const gFix=v=>choice({say:`Help me! "Yesterday I ${v.w}."`,p:"Как правильно сказать?",o:[v.pa,v.w,v.en],c:0,ex0:v.en,ex:`<p>Yesterday I <b>${v.pa}</b>.</p>`});
+const gQ=q=>choice({say:"Choose the right word!",p:`<h2>${q[0]}</h2>`,o:q[1],c:0,ex:`<p>${q[0].replace("___",q[1][0])}</p>`});
+const gSnd=(w,z)=>choice({say:"Listen to the ending!",p:"Какой звук в конце? (ɪd — это ещё один слог)",au:w,auto:1,o:ZN,c:z,ex:`<h2>${w}</h2>`});
+function steps(l){const s=[];
+ if(l.k=="loc"){s.push(learn(l.it),...shuf(l.it).slice(0,3).map(gFind),...shuf(l.it).slice(0,2).map(gFix),...shuf(l.it).slice(0,2).map(build),story(l.it))}
+ if(l.k=="time"){s.push(timeM(),info("Didn't + V1","<h2>I didn't play. ✅</h2><p class='bad'>I didn't played ❌</p><p>Did + V1 — вопрос: <b>Did you play?</b></p><p>Was / were — без did: <b>I was tired.</b></p>"),...shuf(QT).slice(0,8).map(gQ))}
+ if(l.k=="sound"){s.push(info("The -ed sound","<h2>/t/ · /d/ · /ɪd/</h2><p>worked = /t/ · played = /d/ · wanted = /ɪd/</p><p>Озвучка — синтез речи, звук может быть неточным: слушай несколько раз.</p>"));shuf([0,1,2].flatMap(z=>shuf(SW[z]).slice(0,4).map(w=>[w,z]))).forEach(x=>s.push(gSnd(x[0],x[1])))}
+ if(l.k=="forest"){s.push(trees(),memory(shuf(IRR.slice(0,12)).slice(0,6)));shuf(IRR.filter(v=>v[0]!="read"&&v[0]!="see")).slice(0,6).forEach(v=>s.push(choice({say:"Yesterday I ___",p:`<h2>${v[0]} → ?</h2>`,au:v[0],o:[v[1],wrongEd(v[0]),v[0]],c:0,ex0:v[0],ex:`<p>Yesterday I <b>${v[1]}</b>.</p>`})))}
+ if(l.k=="final"){s.push(...shuf(all).slice(0,5).map(gFind),...shuf(all).slice(0,5).map(gFix),...shuf(QT).slice(0,5).map(gQ),...[0,1,2,0,1].map(z=>gSnd(pick(SW[z]),z)),...shuf(IRR.filter(v=>v[0]!="read"&&v[0]!="see")).slice(0,3).map(v=>choice({say:"Yesterday I ___",p:`<h2>${v[0]} → ?</h2>`,o:[v[1],wrongEd(v[0]),v[0]],c:0,ex:`<p><b>${v[1]}</b></p>`})),...shuf(all).slice(0,2).map(build))}
+ return s}
+/* UI */
+const unlocked=i=>S.teacher||i==0||S.done[LV[i-1].id]!==undefined;
+function hud(){$("#hud").innerHTML=`<b>${S.av} ${esc(S.name)}</b> ⭐ ${S.stars} · 📚 ${Object.keys(S.words).length}`}
+function home(){hud();const dn=Object.keys(S.done).length;
+ $("#app").innerHTML=`<h1>YESTERDAY I…</h1><p><i>What did you do yesterday?</i></p>${foxSay("Hello, "+esc(S.name)+"! Let's explore yesterday!","Привет! Давай отправимся в путешествие по вчерашнему дню!")}
+ <div class="card"><p>Имя героя: <input id="nm" maxlength="12" value="${esc(S.name)}" style="font:inherit;width:9em;padding:6px;border-radius:12px;border:3px solid #e5defa"></p><div class="opts">${["🦊","🐱","🐼","🐸","🐯","🤖"].map(a=>`<button class="o em" data-a="${a}" style="${a==S.av?"border-color:var(--g)":""}" aria-label="Герой ${a}">${a}</button>`).join("")}</div>
+ <button class="g" id="go">${dn?"Continue adventure ▶":"START MY ADVENTURE ▶"}</button></div>
+ <div class="map">${LV.map((l,i)=>{const u=unlocked(i);return `<button class="node ${u?"":"lock"} ${S.done[l.id]!==undefined?"done":""}" style="background:${l.c}" data-l="${i}" ${u?"":'aria-disabled="true"'}><span class="e">${u?l.e:"🔒"}</span>${l.t}</button>`}).join("")}</div>
+ <p>Пройдено: ${dn}/${LV.length}. ${rewards()}</p>
+ <label><input type="checkbox" id="tc" ${S.teacher?"checked":""}> Режим учителя: открыть все уровни</label> <button class="s" id="rs">Сброс</button>`;
+ document.querySelectorAll("[data-a]").forEach(b=>b.onclick=()=>{S.av=b.dataset.a;save();home()});
+ $("#nm").onchange=e=>{S.name=e.target.value.trim()||"Fox";save();hud()};
+ $("#go").onclick=()=>{const i=LV.findIndex((l,i)=>unlocked(i)&&S.done[l.id]===undefined);play(i<0?0:i)};
+ document.querySelectorAll("[data-l]").forEach(b=>b.onclick=()=>{const i=+b.dataset.l;unlocked(i)?play(i):say("Finish the last level first!")});
+ $("#tc").onchange=e=>{S.teacher=e.target.checked;save();home()};
+ $("#rs").onclick=()=>{if(confirm("Удалить весь прогресс?")){try{localStorage.removeItem(KEY)}catch(e){}S={name:"Fox",av:"🦊",stars:0,done:{},words:{},teacher:false,hard:{}};home()}}}
+function rewards(){const w=Object.keys(S.words).length,r=[];if(Object.keys(S.done).length)r.push("🏅 First Steps");if(w>=20)r.push("🏅 Word Explorer");if(S.done.tm!==undefined)r.push("🏅 Grammar Hero");if(S.done.for!==undefined)r.push("🏅 Verb Master");if(S.done.snd!==undefined)r.push("🏅 Sound Star");if(S.done.fin!==undefined)r.push("🏅 Perfect Explorer");return r.length?"Награды: "+r.join(" "):"Награды появятся здесь!"}
+function play(i){const l=LV[i],st=steps(l);let k=0,good=0;const box=$("#app");
+ const nxt=()=>{if(k>=st.length)return fin();
+  box.innerHTML=`<button class="s" id="bk">◀ Карта</button><h2>${l.e} ${l.t}</h2><div class="dots">${st.map((_,j)=>`<i class="${j<k?"dn":j==k?"on":""}"></i>`).join("")}</div><div id="st"></div>`;
+  $("#bk").onclick=home;st[k].run($("#st"),ok=>{if(ok&&st[k]&&st[k].run&&/choice|build/.test("")||ok)good+=ok?1:0;k++;nxt()})};
+ const fin=()=>{const n=st.length,pct=Math.round(good/n*100),stars=pct>=90?3:pct>=60?2:1;S.stars+=stars;S.done[l.id]=Math.max(S.done[l.id]||0,stars);save();hud();confetti();
+  const msg=l.k=="final"?(pct>=90?"Super Star!":pct>=75?"Great Job!":pct>=60?"Good Progress!":"Let's Practise Again!"):pick(cheer);
+  box.innerHTML=`<h1>${"⭐".repeat(stars)}</h1><h2>${msg}</h2>${foxSay("You did it, "+esc(S.name)+"!","Ты молодец! Ошибки помогают учиться.")}<p>С первой попытки: ${good} из ${n} (${pct}%)</p><p>${rewards()}</p><button class="g" id="mp">Карта ▶</button> <button class="s" id="ag">Ещё раз</button>`;
+  $("#mp").onclick=home;$("#ag").onclick=()=>play(i)};
+ nxt()}
+function confetti(){if(matchMedia("(prefers-reduced-motion:reduce)").matches)return;const c=document.createElement("div");c.className="conf";c.setAttribute("aria-hidden","true");c.innerHTML=Array.from({length:24},()=>`<span style="left:${Math.random()*100}%;animation-delay:${Math.random()}s">${pick(["⭐","🎉","✨","🌟"])}</span>`).join("");document.body.appendChild(c);setTimeout(()=>c.remove(),3500)}
+home();
+</script></body></html>
